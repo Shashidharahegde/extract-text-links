@@ -62,5 +62,13 @@
   "sideEffects": false,
   "devDependencies": {
     "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shashidharahegde/extract-text-links.git"
+  },
+  "homepage": "https://github.com/Shashidharahegde/extract-text-links#readme",
+  "bugs": {
+    "url": "https://github.com/Shashidharahegde/extract-text-links/issues"
   }
 }
