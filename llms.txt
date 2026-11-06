@@ -1,0 +1,43 @@
+# extract-text-links
+
+> Extract URLs/links from a string and get the remaining text back. Pure function, zero dependencies, ESM only, TypeScript types, plus a CLI. Node >= 18.3.
+
+Use this when you need to: find all URLs in text; remove URLs from text; replace URLs with placeholders; list the hosts mentioned in a message; clean text before sending it to an LLM or storing it. Do not use it to validate that a single string is a URL (use `new URL()`), to fetch pages, or to detect emails.
+
+## Install and call
+
+    npm install extract-text-links
+
+    import extractContent from "extract-text-links";
+    const { text, links } = extractContent("See https://example.com/a, thanks.");
+    // text:  "See, thanks."
+    // links: ["https://example.com/a"]
+
+## One function
+
+`extractContent(str, options?) -> { text, links }`. Throws TypeError if `str` is not a string or an option is invalid. From CommonJS, inside an async function: `const { default: extractContent } = await import("extract-text-links")`.
+
+Recipes (options are all optional):
+- Links only, as openable URLs: `extractContent(s, { bareDomains: true, detailed: true }).links.map(l => l.href)`
+- Replace with a marker: `{ replaceWith: "[link]" }` or `{ replaceWith: (link, i) => `[${i + 1}]` }`
+- Dedupe: `{ unique: true }`
+- Hosts mentioned: `{ detailed: true }` then `links.map(l => l.host)`
+- Only links on a domain (and subdomains): `{ allowHosts: ["example.com"] }`; exclude with `denyHosts`. Entries are hostnames, not URLs
+- Also match example.com/path (no scheme): `{ bareDomains: true }`. IPs and localhost need a protocol: `http://10.0.0.1`
+- Also match mailto:, ftp:: `{ protocols: ["http", "https", "mailto", "ftp"] }`
+- Positions in the input (to highlight or linkify): `{ detailed: true }` gives `start`/`end` per link
+
+Defaults: matches http(s):// and www. links; removes trailing punctuation and unbalanced brackets; keeps balanced ones like Foo_(bar); keeps markdown labels; leaves newlines and other spacing untouched.
+
+## CLI
+
+    npx extract-text-links file.txt --links          # one link per line
+    cat file.txt | npx extract-text-links -b --json  # {"text": "...", "links": [...]}
+    npx extract-text-links -d file.txt               # detailed JSON: url, href, type, host, start, end
+
+Exit code 0 on success, 2 on bad flags or unreadable files, 1 on anything unexpected; errors go to stderr.
+
+## Docs
+
+- README.md: full option table, `Link` fields, detection rules
+- index.d.ts: complete TypeScript types

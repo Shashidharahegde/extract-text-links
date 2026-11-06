@@ -1,0 +1,66 @@
+{
+  "name": "extract-text-links",
+  "version": "1.0.0",
+  "description": "Extract URLs and links from text and get the cleaned text back. Finds http(s), www, bare domains, mailto, markdown [label](url) and <url> links; JSON output, TypeScript types, zero dependencies, with a CLI.",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "bin",
+    "llms.txt"
+  ],
+  "engines": {
+    "node": ">=18.3.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "strip-urls",
+    "extract urls",
+    "extract links",
+    "url extractor",
+    "link extractor",
+    "find urls in text",
+    "find links in text",
+    "remove urls from text",
+    "strip urls",
+    "strip links",
+    "urls from string",
+    "links from string",
+    "url parser",
+    "linkify",
+    "autolink",
+    "markdown links",
+    "bare domain",
+    "domain extraction",
+    "hostname",
+    "text cleaning",
+    "preprocessing",
+    "llm",
+    "agent",
+    "cli",
+    "typescript",
+    "esm",
+    "zero dependencies"
+  ],
+  "author": "Shashidhara Hegde",
+  "license": "MIT",
+  "bin": {
+    "extract-text-links": "bin/extract-text-links.js"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
