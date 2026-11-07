@@ -1,30 +1,6 @@
 # extract-text-links
 
-Split text into its plain text and the links it contains. Works as a library and as a command-line tool.
-
-- Understands the way links appear in real text: plain, `[markdown](https://example.com)` (label kept), `<https://example.com>`
-- Handles trailing punctuation: `see https://example.com.` extracts `https://example.com`
-- Keeps balanced brackets: `https://en.wikipedia.org/wiki/Foo_(bar)` stays whole, but `(see https://example.com)` drops the unmatched `)`
-- Detects `http(s)://`, `www.`, and, if you ask, bare domains (`example.com/docs`), and other schemes such as `mailto:` and `ftp://`
-- Leaves the rest of your text alone: only the whitespace next to a removed link is touched, so newlines and spacing survive
-- Can return positions and openable `href`s, replace links with markers, and filter by host
-- Zero runtime dependencies, ESM, TypeScript types included
-
-## When to use it
-
-Use it to find URLs in text, remove them, replace them with placeholders, or list the hosts a message mentions. It is a single synchronous function with no dependencies, and the CLI can emit JSON, which makes it easy to call from scripts and agents.
-
-It is not a URL validator (use `new URL()` for one string), a crawler, or an email detector.
-
-## Install
-
-```sh
-npm install extract-text-links
-```
-
-Requires Node.js 18.3 or newer. The library itself uses only standard JavaScript and `URL`, but only Node.js is tested.
-
-## Usage
+> Split text into plain text and the links it contains.
 
 ```js
 import extractContent from "extract-text-links";
@@ -37,93 +13,41 @@ text;  // "Docs at, source at."
 links; // ["https://example.com/docs", "www.github.com/foo/bar"]
 ```
 
-A named export is also available: `import { extractContent } from "extract-text-links"`.
+It handles plain links, `[markdown](https://example.com)` links and `<https://example.com>`, ignores trailing punctuation, and leaves the rest of your text untouched. Zero dependencies, ESM, TypeScript types included.
 
-### TypeScript
+## Install
 
-Types ship with the package. `links` is `string[]` unless `detailed: true` is set, when it is `Link[]`:
-
-```ts
-import extractContent, { type ExtractOptions, type Link } from "extract-text-links";
-
-const plain: string[] = extractContent("https://example.com").links;
-const detailed: Link[] = extractContent("https://example.com", { detailed: true }).links;
-
-// When `detailed` is not known at compile time, `links` is (string | Link)[].
-const options: ExtractOptions = { unique: true };
-const either = extractContent("https://example.com", options).links;
+```sh
+npm install extract-text-links
 ```
 
-Tested with strict `tsc` under `moduleResolution` `nodenext`, `node16` and `bundler`.
+Requires Node.js 18.3 or newer.
 
-### CommonJS
+## Command line
 
-The package is ESM only. From CommonJS, use dynamic import, which works on every supported Node.js version:
-
-```js
-import("extract-text-links").then(({ default: extractContent }) => {
-  console.log(extractContent("See https://example.com").links);
-});
+```sh
+npx extract-text-links notes.txt --links    # list the links in a file
+pbpaste | npx extract-text-links            # print text without links
 ```
 
-Node.js 20.19+, 22.12+ and 24 can also `require()` it: `const { extractContent } = require("extract-text-links")`. Older versions throw `ERR_REQUIRE_ESM`.
+## Documentation
 
-### Markdown and angle brackets
-
-```js
-extractContent("Read [the docs](https://example.com/docs) or <https://example.org>.");
-// { text: "Read the docs or.", links: ["https://example.com/docs", "https://example.org"] }
-```
-
-Labels are kept. A label that repeats the link, like `[example.com](https://example.com)`, or that is a link itself, is dropped with it. With `detailed`, it is still available as `label`.
-
-### Bare domains and other schemes
-
-```js
-extractContent("Visit example.com or example.org:8080.", { bareDomains: true });
-// { text: "Visit or.", links: ["example.com", "example.org:8080"] }
-
-extractContent("Mail me@example.com: mailto:me@example.com", { protocols: ["https", "mailto"] });
-// links: ["mailto:me@example.com"]
-```
-
-### Detailed matches
-
-```js
-const { links } = extractContent("Go to www.example.com/a now", { detailed: true });
-// [{
-//   url: "www.example.com/a", href: "https://www.example.com/a",
-//   type: "www", syntax: "plain", host: "www.example.com", start: 6, end: 23
-// }]
-```
-
-`start` and `end` index into your original string, so you can highlight or linkify it. `href` is a form you can open in a browser.
-
-### Replace instead of delete
-
-```js
-extractContent("See https://a.com and https://b.com", {
-  replaceWith: (link, i) => `[${i + 1}]`,
-});
-// { text: "See [1] and [2]", links: ["https://a.com", "https://b.com"] }
-```
-
-### Filtering by host
-
-```js
-extractContent("https://docs.example.com https://tracker.evil.com", {
-  denyHosts: ["evil.com"],
-});
-// links: ["https://docs.example.com"]; the denied link stays in the text
-```
-
-`allowHosts` and `denyHosts` match the host and all its subdomains. Entries must be hostnames: `https://evil.com` or `evil.com/path` throws a `TypeError`. Use `filter(link)` for anything else.
-
-## API
+- [Options](#options)
+- [Examples](#examples)
+- [The `Link` object](#the-link-object)
+- [Command line flags](#command-line-flags)
+- [TypeScript and CommonJS](#typescript-and-commonjs)
+- [How bare domain detection works](#how-bare-domain-detection-works)
+- [Things to know](#things-to-know)
+- [Development](#development)
 
 ### `extractContent(str, options?)`
 
-Returns `{ text, links }`. Throws a `TypeError` if `str` is not a string or an option is invalid. Errors thrown by your `filter` or `replaceWith` propagate to the caller.
+Returns `{ text, links }`. Throws a `TypeError` if `str` is not a string or an option is invalid. Errors thrown by your `filter` or `replaceWith` propagate to the caller. A named export is also available: `import { extractContent } from "extract-text-links"`.
+
+It is not a URL validator (use `new URL()` for one string), a crawler, or an email detector.
+
+### Options
 
 | Option                | Type                 | Default            | Description |
 | --------------------- | -------------------- | ------------------ | ----------- |
@@ -140,7 +64,62 @@ Returns `{ text, links }`. Throws a `TypeError` if `str` is not a string or an o
 
 A rejected link (by a host list or `filter`) stays in `text` exactly as written. A rejected markdown or angle-bracket link is scanned again as plain text, so `filter` can run more than once for the same link, with a different `syntax`.
 
-### `Link`
+`DEFAULT_TLDS` and `DEFAULT_PROTOCOLS` are exported too. Extend them with `{ bareDomains: true, tlds: [...DEFAULT_TLDS, "dog"] }`.
+
+### Examples
+
+**Markdown and angle brackets**
+
+```js
+extractContent("Read [the docs](https://example.com/docs) or <https://example.org>.");
+// { text: "Read the docs or.", links: ["https://example.com/docs", "https://example.org"] }
+```
+
+Labels are kept. A label that repeats the link, like `[example.com](https://example.com)`, or that is a link itself, is dropped with it. With `detailed`, it is still available as `label`.
+
+**Bare domains and other schemes**
+
+```js
+extractContent("Visit example.com or example.org:8080.", { bareDomains: true });
+// { text: "Visit or.", links: ["example.com", "example.org:8080"] }
+
+extractContent("Mail me@example.com: mailto:me@example.com", { protocols: ["https", "mailto"] });
+// links: ["mailto:me@example.com"]
+```
+
+**Detailed matches**
+
+```js
+const { links } = extractContent("Go to www.example.com/a now", { detailed: true });
+// [{
+//   url: "www.example.com/a", href: "https://www.example.com/a",
+//   type: "www", syntax: "plain", host: "www.example.com", start: 6, end: 23
+// }]
+```
+
+`start` and `end` index into your original string, so you can highlight or linkify it. `href` is a form you can open in a browser.
+
+**Replace instead of delete**
+
+```js
+extractContent("See https://a.com and https://b.com", {
+  replaceWith: (link, i) => `[${i + 1}]`,
+});
+// { text: "See [1] and [2]", links: ["https://a.com", "https://b.com"] }
+```
+
+**Filter by host**
+
+```js
+extractContent("https://docs.example.com https://tracker.evil.com", {
+  denyHosts: ["evil.com"],
+});
+// links: ["https://docs.example.com"]; the denied link stays in the text
+```
+
+`allowHosts` and `denyHosts` match the host and all its subdomains. Entries must be hostnames: `https://evil.com` or `evil.com/path` throws a `TypeError`. Use `filter(link)` for anything else.
+
+### The `Link` object
 
 | Field    | Description |
 | -------- | ----------- |
@@ -152,20 +131,13 @@ A rejected link (by a host list or `filter`) stays in `text` exactly as written.
 | `start`, `end` | Position of `url` in the input. |
 | `label`  | The `[label]` text, for markdown links only. |
 
-### `DEFAULT_TLDS`, `DEFAULT_PROTOCOLS`
+### Command line flags
 
-The defaults for `tlds` and `protocols`. Extend them with
-`{ bareDomains: true, tlds: [...DEFAULT_TLDS, "dog"] }`.
-
-## Command line
+With no file, the CLI reads standard input. Run `extract-text-links --help` for every flag.
 
 ```sh
-npx extract-text-links notes.txt --links          # list the links in a file
-pbpaste | npx extract-text-links -b               # print clipboard text without links
 npx extract-text-links chat.md -r "[link]" --deny-hosts tracker.example.com
 ```
-
-With no file, it reads standard input. Run `extract-text-links --help` for every flag.
 
 | Flag | Meaning |
 | ---- | ------- |
@@ -179,7 +151,34 @@ With no file, it reads standard input. Run `extract-text-links --help` for every
 
 Exit codes: `0` on success, `2` for bad flags or unreadable files, `1` for anything unexpected. With several files, they are joined with newlines, so `-d` positions refer to the joined text.
 
-## How detection works
+### TypeScript and CommonJS
+
+Types ship with the package. `links` is `string[]` unless `detailed: true` is set, when it is `Link[]`:
+
+```ts
+import extractContent, { type ExtractOptions, type Link } from "extract-text-links";
+
+const plain: string[] = extractContent("https://example.com").links;
+const detailed: Link[] = extractContent("https://example.com", { detailed: true }).links;
+
+// When `detailed` is not known at compile time, `links` is (string | Link)[].
+const options: ExtractOptions = { unique: true };
+const either = extractContent("https://example.com", options).links;
+```
+
+Tested with strict `tsc` under `moduleResolution` `nodenext`, `node16` and `bundler`.
+
+The package is ESM only. From CommonJS, use dynamic import, which works on every supported Node.js version:
+
+```js
+import("extract-text-links").then(({ default: extractContent }) => {
+  console.log(extractContent("See https://example.com").links);
+});
+```
+
+Node.js 20.19+, 22.12+ and 24 can also `require()` it: `const { extractContent } = require("extract-text-links")`. Older versions throw `ERR_REQUIRE_ESM`.
+
+### How bare domain detection works
 
 Bare domains are only matched when they end in a known TLD, which keeps false positives down:
 
@@ -194,7 +193,7 @@ Bare domains are only matched when they end in a known TLD, which keeps false po
 
 TLDs that double as common file extensions (`py`, `md`, `sh`, `rs`, `zip`, `mov`, `pl`, `cc`) are left out of the default list. The list is a curated set of common TLDs, not every TLD that exists, so pass your own `tlds` if you need others. Text with a missing space after a full stop, like `done.It`, can still be read as a domain when the TLD is in the list.
 
-## Things to know
+### Things to know
 
 - `lowercase` only changes the scheme and host. Paths like `/Report/ID=aB` keep their case.
 - Markdown links with a relative URL (`[a](/page)`) are left in the text. A full link inside such a label is still found.
@@ -203,7 +202,7 @@ TLDs that double as common file extensions (`py`, `md`, `sh`, `rs`, `zip`, `mov`
 - Host lists decide which links are reported. They are not a security boundary on their own: `url` and `href` are returned as written, so escape them before putting them in HTML.
 - Full-width punctuation (`。，、！？；：`) ends a link, since it is sentence punctuation in almost all real text. A literal one inside a URL must be percent-encoded to be kept.
 
-### Known limitations
+**Known limitations**
 
 - `https://a.com,https://b.com` is one link, because a comma is legal in a URL. Separate links with whitespace.
 - A linked image, `[![alt](img)](target)`, gives both links but leaves `[alt]()` in the text.
@@ -212,7 +211,7 @@ TLDs that double as common file extensions (`py`, `md`, `sh`, `rs`, `zip`, `mov`
 - HTML is not decoded, so `&amp;` stays in a link as written.
 - TLDs in `tlds` must be ASCII or punycode: use `xn--p1ai`, not `рф`.
 
-## Development
+### Development
 
 ```sh
 npm install   # only TypeScript, used by the tests
